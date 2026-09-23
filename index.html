@@ -1,0 +1,256 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Meng To — Southeast Asia Sketchbook: Vietnam &amp; Singapore</title>
+  <link rel="stylesheet" href="/src/shaders/threeui.css">
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    html, body, #root {
+      width: 100%;
+      height: 100%;
+      overflow: hidden;
+      background: #080808;
+      font-family: system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+    }
+    .shader-frame {
+      width: 100%;
+      height: 100%;
+      position: relative;
+    }
+  </style>
+</head>
+<body>
+  <div id="root"></div>
+
+  <!-- React 18 UMD for instant, offline-capable execution -->
+  <script src="https://unpkg.com/react@18/umd/react.production.min.js" crossorigin></script>
+  <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js" crossorigin></script>
+
+  <script>
+    // Fallback if CDN is unavailable: simple native runner that executes the identical React contract
+    (function() {
+      const STYLE_ID = "threeui-page-typography";
+      const FONT_LINK_ID = "threeui-page-typography-fonts";
+      const MESSAGE_TYPE = "threeui-page-customization";
+
+      const MENG_RECIPE = {
+        primaryColor: "#2b2721",
+        css: function(type) {
+          var px = function(v) { return Math.round(v) + "px"; };
+          var n = function(v) { return Number(v.toFixed(3)); };
+          var withAlpha = function(hex, alpha) {
+            var m = hex.replace("#", "");
+            if (m.length === 3) m = m.split("").map(function(c) { return c + c; }).join("");
+            var num = parseInt(m, 16);
+            return "rgba(" + (num >> 16) + ", " + ((num >> 8) & 255) + ", " + (num & 255) + ", " + alpha + ")";
+          };
+
+          return [
+            ":root {",
+            "  --ink: " + type.primary + ";",
+            "  --ink-soft: " + withAlpha(type.primary, 0.58) + ";",
+            "  --ink-faint: " + withAlpha(type.primary, 0.36) + ";",
+            "  --hairline: " + withAlpha(type.primary, 0.14) + ";",
+            "  --display: " + type.heading + ";",
+            "  --font: " + type.body + ";",
+            "}",
+            "body { font-family: " + type.body + "; font-weight: " + type.bodyWeight + "; }",
+            ".top .name, .plate .t { font-family: " + type.heading + "; font-weight: " + type.headingWeight + "; }",
+            ".top .name {",
+            "  font-size: clamp(" + px((type.headingSize * 24) / 30) + ", calc(" + n(type.headingSize / 30) + " * 2.4vw), " + px(type.headingSize) + ");",
+            "  letter-spacing: " + type.headingLetterSpacing + "em;",
+            "}",
+            ".plate .t {",
+            "  font-size: clamp(" + px((type.headingSize * 19) / 30) + ", calc(" + n(type.headingSize / 30) + " * 2.1vw), " + px((type.headingSize * 26) / 30) + ");",
+            "  letter-spacing: " + n(type.headingLetterSpacing - 0.01) + "em;",
+            "}",
+            ".top nav { font-size: " + px((type.bodySize * 15) / 20) + "; font-weight: " + (type.bodyWeight === "400" ? "300" : type.bodyWeight) + "; }",
+            ".hero-kicker { font-size: " + px((type.bodySize * 12) / 20) + "; font-weight: " + type.bodyWeight + "; }"
+          ].join("\n");
+        }
+      };
+
+      function computeCustomization(props) {
+        var headingFont = props.headingFont || "instrument-serif";
+        var bodyFont = props.bodyFont || "newsreader";
+        var headingStack = headingFont === "instrument-serif" ? '"Instrument Serif", Georgia, serif' : '"Newsreader", Georgia, serif';
+        var bodyStack = bodyFont === "newsreader" ? '"Newsreader", Georgia, serif' : '"Instrument Serif", Georgia, serif';
+        var primary = props.primaryColor || "#2b2721";
+        var headingWeight = props.headingWeight || "400";
+        var bodyWeight = props.bodyWeight || "400";
+        var headingSize = props.headingSize !== undefined ? props.headingSize : 30;
+        var bodySize = props.bodySize !== undefined ? props.bodySize : 20;
+        var headingLetterSpacing = props.headingLetterSpacing !== undefined ? props.headingLetterSpacing : 0.01;
+
+        var type = {
+          heading: headingStack,
+          body: bodyStack,
+          headingWeight: headingWeight,
+          bodyWeight: bodyWeight,
+          primary: primary,
+          headingSize: headingSize,
+          bodySize: bodySize,
+          headingLetterSpacing: headingLetterSpacing
+        };
+
+        return {
+          css: MENG_RECIPE.css(type),
+          fontHref: undefined
+        };
+      }
+
+      function applyPageCustomization(frame, customization) {
+        try {
+          var frameDocument = frame && frame.contentDocument;
+          if (!frameDocument || !frameDocument.head) return;
+
+          var existingLink = frameDocument.getElementById(FONT_LINK_ID);
+          if (customization && customization.fontHref) {
+            var link = existingLink || frameDocument.createElement("link");
+            link.id = FONT_LINK_ID;
+            link.rel = "stylesheet";
+            if (link.getAttribute("href") !== customization.fontHref) link.href = customization.fontHref;
+            if (!existingLink) frameDocument.head.append(link);
+          } else if (existingLink) {
+            existingLink.remove();
+          }
+
+          if (!customization || !customization.css) {
+            var oldStyle = frameDocument.getElementById(STYLE_ID);
+            if (oldStyle) oldStyle.remove();
+            return;
+          }
+
+          var style = frameDocument.getElementById(STYLE_ID) || frameDocument.createElement("style");
+          style.id = STYLE_ID;
+          if (style.textContent !== customization.css) style.textContent = customization.css;
+          frameDocument.head.append(style);
+        } catch (e) {
+          console.warn("Could not access contentDocument directly (sandboxed):", e);
+        }
+      }
+
+      function postPageCustomization(frame, customization) {
+        if (frame && frame.contentWindow) {
+          frame.contentWindow.postMessage({
+            type: MESSAGE_TYPE,
+            css: (customization && customization.css) || "",
+            fontHref: customization && customization.fontHref
+          }, "*");
+        }
+      }
+
+      // React component implementation
+      function MengToSketchbookLandingPage(props) {
+        var customization = computeCustomization(props);
+        var frameRef = React.useRef(null);
+        var [ready, setReady] = React.useState(false);
+
+        React.useEffect(function() {
+          if (frameRef.current) {
+            applyPageCustomization(frameRef.current, customization);
+            postPageCustomization(frameRef.current, customization);
+          }
+        }, [customization]);
+
+        return React.createElement(
+          "div",
+          {
+            className: "threeui-background landing-page-frame",
+            "data-state": ready ? "ready" : "loading",
+            style: { position: "relative", overflow: "hidden", background: "#080808", pointerEvents: "auto", width: "100%", height: "100%" }
+          },
+          React.createElement("iframe", {
+            ref: frameRef,
+            title: "Meng To — Southeast Asia Sketchbook",
+            src: "/landing-pages/meng-to-sketchbook.html",
+            sandbox: "allow-downloads allow-forms allow-modals allow-popups allow-same-origin allow-scripts",
+            loading: "eager",
+            onLoad: function(event) {
+              applyPageCustomization(event.currentTarget, customization);
+              postPageCustomization(event.currentTarget, customization);
+              setReady(true);
+            },
+            style: {
+              position: "absolute",
+              inset: 0,
+              display: "block",
+              width: "100%",
+              height: "100%",
+              border: 0,
+              background: "#080808",
+              opacity: 1,
+              pointerEvents: "auto"
+            }
+          })
+        );
+      }
+
+      // Exact configured usage Scene component
+      function Scene() {
+        return React.createElement(
+          "div",
+          { className: "shader-frame" },
+          React.createElement(MengToSketchbookLandingPage, {
+            headingFont: "instrument-serif",
+            bodyFont: "newsreader",
+            headingWeight: "400",
+            bodyWeight: "400",
+            primaryColor: "#2b2721",
+            headingSize: 30,
+            bodySize: 20,
+            headingLetterSpacing: 0.010
+          })
+        );
+      }
+
+      // Mount Scene
+      if (window.React && window.ReactDOM) {
+        var root = ReactDOM.createRoot ? ReactDOM.createRoot(document.getElementById("root")) : null;
+        if (root) {
+          root.render(React.createElement(Scene));
+        } else {
+          ReactDOM.render(React.createElement(Scene), document.getElementById("root"));
+        }
+      } else {
+        // Vanilla DOM fallback if React UMD scripts blocked
+        var root = document.getElementById("root");
+        var frameWrap = document.createElement("div");
+        frameWrap.className = "shader-frame";
+        var cust = computeCustomization({
+          headingFont: "instrument-serif",
+          bodyFont: "newsreader",
+          headingWeight: "400",
+          bodyWeight: "400",
+          primaryColor: "#2b2721",
+          headingSize: 30,
+          bodySize: 20,
+          headingLetterSpacing: 0.010
+        });
+
+        var lFrame = document.createElement("div");
+        lFrame.className = "threeui-background landing-page-frame";
+        lFrame.style.cssText = "position: relative; overflow: hidden; background: #080808; width: 100%; height: 100%;";
+        
+        var iframe = document.createElement("iframe");
+        iframe.title = "Meng To — Southeast Asia Sketchbook";
+        iframe.src = "/landing-pages/meng-to-sketchbook.html";
+        iframe.sandbox = "allow-downloads allow-forms allow-modals allow-popups allow-same-origin allow-scripts";
+        iframe.loading = "eager";
+        iframe.style.cssText = "position: absolute; inset: 0; display: block; width: 100%; height: 100%; border: 0; background: #080808;";
+        
+        iframe.onload = function() {
+          applyPageCustomization(iframe, cust);
+          postPageCustomization(iframe, cust);
+        };
+
+        lFrame.appendChild(iframe);
+        frameWrap.appendChild(lFrame);
+        root.appendChild(frameWrap);
+      }
+    })();
+  </script>
+</body>
+</html>
